@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Counter Factory — Closures Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Outfit:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg:       #0e1117;
+    --panel:    #161b27;
+    --border:   #222d42;
+    --accent:   #4ade80;
+    --blue:     #60a5fa;
+    --red:      #f87171;
+    --yellow:   #fbbf24;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --mono:     'Fira Code', monospace;
+    --sans:     'Outfit', sans-serif;
+    --r:        10px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  header {
+    padding: 36px 48px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { font-size: 2rem; font-weight: 800; letter-spacing: -1.5px; }
+  .logo em { color: var(--accent); font-style: normal; }
+  .subtitle { font-family: var(--mono); font-size: .78rem; color: var(--muted); margin-top: 4px; }
+
+  main { max-width: 1120px; margin: 0 auto; padding: 40px 32px; }
+
+  .section { margin-bottom: 56px; }
+
+  h2 {
+    font-size: .72rem; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--blue);
+    margin-bottom: 20px; display: flex; align-items: center; gap: 12px;
+  }
+  h2::after { content:''; flex:1; height:1px; background: var(--border); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap: 16px; }
+
+  /* card */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .card:hover { border-color: #2d3f62; }
+
+  .card-head {
+    padding: 13px 18px 11px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .fn { font-family: var(--mono); font-size: .9rem; font-weight: 600; color: var(--yellow); }
+  .tag {
+    font-size: .62rem; font-family: var(--mono);
+    padding: 2px 7px; border-radius: 4px;
+    background: rgba(96,165,250,.12); color: var(--blue);
+    border: 1px solid rgba(96,165,250,.2);
+  }
+
+  .card-body { padding: 16px 18px; }
+  .desc { font-size: .82rem; color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
+
+  /* counter widget */
+  .counter-wrap {
+    display: flex; align-items: center; gap: 0;
+    border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; width: fit-content; margin-bottom: 10px;
+  }
+  .c-btn {
+    width: 44px; height: 44px; background: #1e2535; border: none;
+    color: var(--text); font-size: 1.2rem; font-weight: 700; cursor: pointer;
+    transition: background .15s; font-family: var(--mono);
+  }
+  .c-btn:hover { background: #2a3447; }
+  .c-btn:active { background: var(--accent); color: #000; }
+  .c-btn:disabled { opacity: .3; cursor: not-allowed; }
+  .c-num {
+    min-width: 72px; height: 44px; display: flex; align-items: center;
+    justify-content: center; font-family: var(--mono); font-size: 1.25rem;
+    font-weight: 600; border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  .c-num.pop { animation: pop .18s ease; }
+  @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.35)} 100%{transform:scale(1)} }
+
+  .c-meta { font-family: var(--mono); font-size: .72rem; color: var(--muted); margin-bottom: 10px; }
+
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--mono); font-size: .76rem;
+    padding: 5px 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid; transition: background .15s, color .15s;
+  }
+  .btn-g { border-color: var(--accent); color: var(--accent); background: transparent; }
+  .btn-g:hover { background: var(--accent); color: #000; }
+  .btn-r { border-color: var(--red); color: var(--red); background: transparent; }
+  .btn-r:hover { background: var(--red); color: #000; }
+  .btn-b { border-color: var(--blue); color: var(--blue); background: transparent; }
+  .btn-b:hover { background: var(--blue); color: #000; }
+
+  /* history table */
+  .history {
+    margin-top: 12px;
+    border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden; max-height: 200px; overflow-y: auto;
+  }
+  .history-head {
+    display: grid; grid-template-columns: 90px 55px 55px 1fr;
+    background: #1a2035; padding: 6px 10px;
+    font-family: var(--mono); font-size: .68rem; color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+  }
+  .history-row {
+    display: grid; grid-template-columns: 90px 55px 55px 1fr;
+    padding: 5px 10px; border-bottom: 1px solid #1a2035;
+    font-family: var(--mono); font-size: .72rem;
+    animation: slideIn .15s ease;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:none} }
+  .history-row:last-child { border: none; }
+  .act-inc { color: var(--accent); }
+  .act-dec { color: var(--red); }
+  .act-rst { color: var(--yellow); }
+  .empty-history {
+    padding: 10px; font-family: var(--mono); font-size: .75rem;
+    color: var(--muted); text-align: center;
+  }
+
+  /* private state proof */
+  .proof-box {
+    background: #0a0d14; border: 1px solid var(--border);
+    border-radius: 6px; padding: 12px 14px;
+    font-family: var(--mono); font-size: .78rem;
+    margin-top: 12px; line-height: 1.8;
+  }
+  .proof-line { display: flex; gap: 10px; }
+  .proof-comment { color: var(--muted); }
+  .proof-code { color: #c4b5fd; }
+  .proof-result { color: var(--accent); }
+  .proof-undefined { color: var(--red); }
+
+  /* range slider */
+  .range-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+  .range-row label { font-family: var(--mono); font-size: .75rem; color: var(--muted); }
+  input[type=range] { flex: 1; accent-color: var(--accent); }
+  .range-val { font-family: var(--mono); font-size: .82rem; color: var(--accent); min-width: 28px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Counter<em>Factory</em></div>
+  <div class="subtitle">// Практична 9.1 · Варіант 1 · Паттерни замикань</div>
+</header>
+
+<main>
+
+  <!-- 1. createCounter -->
+  <div class="section">
+    <h2>1 — createCounter</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="card-head">
+          <span class="fn">createCounter(0)</span>
+          <span class="tag">closure</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Базовий лічильник. Змінна <code>count</code> зберігається у замиканні — звернення <code>c.count</code> повертає <code>undefined</code>.</p>
+          <div class="counter-wrap">
+            <button class="c-btn" id="c1d">−</button>
+            <div class="c-num" id="c1v">0</div>
+            <button class="c-btn" id="c1i">+</button>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-r" id="c1r">reset</button>
+          </div>
+          <!-- Доказ приватності -->
+          <div class="proof-box" id="c1-proof">
+            <div class="proof-line">
+              <span class="proof-code">c.count</span>
+              <span class="proof-result">→ <span class="proof-undefined">undefined</span> ✓</span>
+            </div>
+            <div class="proof-line">
+              <span class="proof-code">c.get()</span>
+              <span class="proof-result" id="c1-get-proof">→ 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. createLimitedCounter -->
+  <div class="section">
+    <h2>2 — createLimitedCounter</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="card-head">
+          <span class="fn">createLimitedCounter(0, 5)</span>
+          <span class="tag">min/max</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Не виходить за межі [0, 5]. Кнопки стають неактивними на межах.</p>
+          <div class="counter-wrap">
+            <button class="c-btn" id="c2d">−</button>
+            <div class="c-num" id="c2v">0</div>
+            <button class="c-btn" id="c2i">+</button>
+          </div>
+          <div class="c-meta" id="c2m">range [0, 5] · isMin: true · isMax: false</div>
+          <div class="btn-row">
+            <button class="btn btn-r" id="c2r">reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. createStepCounter -->
+  <div class="section">
+    <h2>3 — createStepCounter</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="card-head">
+          <span class="fn">createStepCounter(step)</span>
+          <span class="tag">змінний крок</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Крок змінюється через повзунок. Виклик <code>setStep(n)</code> оновлює приватну змінну <code>_step</code>.</p>
+          <div class="counter-wrap">
+            <button class="c-btn" id="c3d">−</button>
+            <div class="c-num" id="c3v">0</div>
+            <button class="c-btn" id="c3i">+</button>
+          </div>
+          <div class="range-row">
+            <label>step:</label>
+            <input type="range" id="c3s" min="1" max="25" value="1">
+            <span class="range-val" id="c3sv">1</span>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-r" id="c3r">reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. createNamedCounter -->
+  <div class="section">
+    <h2>4 — createNamedCounter</h2>
+    <div class="grid" style="grid-template-columns: 1fr;">
+      <div class="card" style="max-width: 700px;">
+        <div class="card-head">
+          <span class="fn">createNamedCounter('score', 0)</span>
+          <span class="tag">ім'я + історія</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Зберігає приватну історію кожної зміни. <code>getHistory()</code> повертає захисну копію — пряма модифікація оригіналу неможлива.</p>
+          <div class="counter-wrap">
+            <button class="c-btn" id="c4d">−</button>
+            <div class="c-num" id="c4v">0</div>
+            <button class="c-btn" id="c4i">+</button>
+          </div>
+          <div class="c-meta" id="c4m">name: "score" · history: 0 записів</div>
+          <div class="btn-row" style="margin-bottom:12px;">
+            <button class="btn btn-r" id="c4r">reset</button>
+            <button class="btn btn-b" id="c4ch">clearHistory</button>
+          </div>
+          <!-- History table -->
+          <div class="history" id="c4-history">
+            <div class="history-head">
+              <span>action</span><span>from</span><span>to</span><span>timestamp</span>
+            </div>
+            <div class="empty-history" id="c4-empty">// поки що порожньо</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── Вбудована бібліотека ──────────────────────────────────────
+
+const createCounter = (initial = 0) => {
+  let count = initial;
+  return {
+    increment() { return ++count; },
+    decrement() { return --count; },
+    get()       { return count; },
+    reset()     { return (count = initial); },
+  };
+};
+
+const createLimitedCounter = (min, max, initial = min) => {
+  let count = initial;
+  const clamp = v => Math.min(max, Math.max(min, v));
+  return {
+    increment() { return (count = clamp(count + 1)); },
+    decrement() { return (count = clamp(count - 1)); },
+    get()       { return count; },
+    reset()     { return (count = initial); },
+    isMin()     { return count === min; },
+    isMax()     { return count === max; },
+  };
+};
+
+const createStepCounter = (step = 1, initial = 0) => {
+  let count = initial, _step = step;
+  return {
+    increment()   { return (count += _step); },
+    decrement()   { return (count -= _step); },
+    get()         { return count; },
+    reset()       { return (count = initial); },
+    setStep(s)    { _step = s; },
+    getStep()     { return _step; },
+  };
+};
+
+const createNamedCounter = (name, initial = 0) => {
+  let count = initial;
+  const history = [];
+  const rec = (action, from, to) =>
+    history.push({ action, from, to,
+      timestamp: new Date().toLocaleTimeString('uk-UA', { hour12: false }) });
+  return {
+    increment() { const p=count; count++; rec('increment',p,count); return count; },
+    decrement() { const p=count; count--; rec('decrement',p,count); return count; },
+    get()       { return count; },
+    reset()     { const p=count; count=initial; rec('reset',p,count); return count; },
+    getName()   { return name; },
+    getHistory(){ return history.map(e=>({...e})); },
+    clearHistory(){ history.length = 0; },
+    historySize(){ return history.length; },
+  };
+};
+
+// ── Helpers ───────────────────────────────────────────────────
+
+const pop = el => {
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+};
+
+// ── Counter 1 ─────────────────────────────────────────────────
+const c1 = createCounter(0);
+const c1v = document.getElementById('c1v');
+const upd1 = () => {
+  const v = c1.get();
+  c1v.textContent = v;
+  pop(c1v);
+  document.getElementById('c1-get-proof').textContent = `→ ${v}`;
+};
+document.getElementById('c1i').onclick = () => { c1.increment(); upd1(); };
+document.getElementById('c1d').onclick = () => { c1.decrement(); upd1(); };
+document.getElementById('c1r').onclick = () => { c1.reset(); upd1(); };
+
+// ── Counter 2 (limited) ───────────────────────────────────────
+const c2 = createLimitedCounter(0, 5);
+const c2v = document.getElementById('c2v');
+const c2m = document.getElementById('c2m');
+const c2i = document.getElementById('c2i');
+const c2d = document.getElementById('c2d');
+const upd2 = () => {
+  const v = c2.get();
+  c2v.textContent = v;
+  pop(c2v);
+  c2m.textContent = `range [0, 5] · isMin: ${c2.isMin()} · isMax: ${c2.isMax()}`;
+  c2i.disabled = c2.isMax();
+  c2d.disabled = c2.isMin();
+};
+c2i.onclick = () => { c2.increment(); upd2(); };
+c2d.onclick = () => { c2.decrement(); upd2(); };
+document.getElementById('c2r').onclick = () => { c2.reset(); upd2(); };
+upd2();
+
+// ── Counter 3 (step) ──────────────────────────────────────────
+const c3 = createStepCounter(1, 0);
+const c3v = document.getElementById('c3v');
+const upd3 = () => { c3v.textContent = c3.get(); pop(c3v); };
+document.getElementById('c3i').onclick = () => { c3.increment(); upd3(); };
+document.getElementById('c3d').onclick = () => { c3.decrement(); upd3(); };
+document.getElementById('c3r').onclick = () => { c3.reset(); upd3(); };
+document.getElementById('c3s').oninput = function() {
+  const s = parseInt(this.value);
+  document.getElementById('c3sv').textContent = s;
+  c3.setStep(s);
+};
+
+// ── Counter 4 (named) ─────────────────────────────────────────
+const c4 = createNamedCounter('score', 0);
+const c4v = document.getElementById('c4v');
+const c4m = document.getElementById('c4m');
+
+const renderHistory = () => {
+  const h = c4.getHistory();
+  const container = document.getElementById('c4-history');
+  const empty = document.getElementById('c4-empty');
+  // remove old rows
+  container.querySelectorAll('.history-row').forEach(r => r.remove());
+  if (h.length === 0) {
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    h.forEach(e => {
+      const row = document.createElement('div');
+      row.className = `history-row act-${e.action === 'increment' ? 'inc' : e.action === 'decrement' ? 'dec' : 'rst'}`;
+      row.innerHTML = `<span>${e.action}</span><span>${e.from}</span><span>${e.to}</span><span>${e.timestamp}</span>`;
+      container.appendChild(row);
+    });
+  }
+  c4m.textContent = `name: "${c4.getName()}" · history: ${c4.historySize()} записів`;
+};
+
+const upd4 = () => { c4v.textContent = c4.get(); pop(c4v); renderHistory(); };
+
+document.getElementById('c4i').onclick = () => { c4.increment(); upd4(); };
+document.getElementById('c4d').onclick = () => { c4.decrement(); upd4(); };
+document.getElementById('c4r').onclick = () => { c4.reset(); upd4(); };
+document.getElementById('c4ch').onclick = () => { c4.clearHistory(); renderHistory(); };
+</script>
+</body>
+</html>
