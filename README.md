@@ -141,7 +141,7 @@ nc.history; // undefined — масив недоступний напряму
 
 ## Demo відео
 
-> 📹 [Посилання на відео-демонстрацію](#)
+> https://github.com/imenshov-ctrl/js-closures-part1-variant1/blob/main/Counter%20Factory%20%E2%80%94%20Closures%20Demo%20-%20Google%20Chrome%202026-04-28%2019-44-16.mp4
 
 ---
 
